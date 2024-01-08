@@ -31,5 +31,17 @@ namespace WinFormsApp1
             return false;
         }
 
+        public int AmountOfGamesOnADay(DateTime day)
+        {
+            int count = 0;
+            foreach (Game game in Games)
+            {
+                if (game.ScheduledTime == day)
+                {
+                    count++;
+                }
+            }
+            return count;
+        }
     }
 }

@@ -18,5 +18,11 @@ namespace WinFormsApp1
             AwayTeam = awayTeam;
             ScheduledTime = scheduledTime;
         }
+
+        public Game(Team homeTeam, Team awayTeam)
+        {
+            HomeTeam = homeTeam;
+            AwayTeam = awayTeam;
+        }
     }
 }
