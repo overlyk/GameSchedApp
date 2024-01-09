@@ -169,6 +169,7 @@ namespace WinFormsApp1
                 }
             }
 
+
             for (int i = 0; i < scheduleDays.Length; i++)
             {
                 int count = schedule.AmountOfGamesOnADay(scheduleDays[i]);
@@ -255,16 +256,6 @@ namespace WinFormsApp1
                                 schedule.AddGame(new Game(currentTeam, opponent, scheduleDays[j]));
                             }
                         }
-
-
-                        //int countGames = 0;
-                        //foreach (Game game in schedule.Games)
-                        //{
-                        //    if (game.ScheduledTime == scheduleDays[j])
-                        //    {
-                        //        countGames += 1;
-                        //    }
-                        //}
                     }
                 }
                 int gameSlotsCount = 0; //count amount of slots that have a game scheduled

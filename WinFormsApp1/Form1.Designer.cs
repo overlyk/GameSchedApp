@@ -318,15 +318,15 @@
             // 
             this.btnAddTeam.Location = new System.Drawing.Point(1028, 17);
             this.btnAddTeam.Name = "btnAddTeam";
-            this.btnAddTeam.Size = new System.Drawing.Size(75, 23);
+            this.btnAddTeam.Size = new System.Drawing.Size(124, 23);
             this.btnAddTeam.TabIndex = 25;
-            this.btnAddTeam.Text = "Add Team";
+            this.btnAddTeam.Text = "Generate Teamset1";
             this.btnAddTeam.UseVisualStyleBackColor = true;
             this.btnAddTeam.Click += new System.EventHandler(this.btnAddTeam_Click);
             // 
             // btnRandomize
             // 
-            this.btnRandomize.Location = new System.Drawing.Point(1028, 50);
+            this.btnRandomize.Location = new System.Drawing.Point(408, 715);
             this.btnRandomize.Name = "btnRandomize";
             this.btnRandomize.Size = new System.Drawing.Size(75, 23);
             this.btnRandomize.TabIndex = 26;
