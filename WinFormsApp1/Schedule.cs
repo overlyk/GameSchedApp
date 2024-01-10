@@ -10,6 +10,9 @@ namespace WinFormsApp1
     {
         public List<Game> Games { get; }
 
+        //should schedule consist of a list of time slots?
+        //then optimize the games into those timeslots and assign a day
+
         public Schedule()
         {
             Games = new List<Game>();

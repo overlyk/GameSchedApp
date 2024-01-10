@@ -12,8 +12,11 @@ namespace WinFormsApp1
     {
         List<ScheduledTime> scheduledTimes = new List<ScheduledTime>();
         List<Team> teams = new List<Team>();
+        static List<List<Game>> validGameLists = new List<List<Game>>();
+        static List<Game> validGames = new List<Game>();
+        static List<Game> currentGameList = new List<Game>();
         static List<List<Team>> teamPermutations = new List<List<Team>>();
-
+        static bool isConflict = false;
         public Form1()
         {
             InitializeComponent();
@@ -31,11 +34,12 @@ namespace WinFormsApp1
         //should be using combinatorics?
         static Schedule GenerateSchedule(List<Team> teamsInput)
         {
+
             List<Team> remainingTeams = new List<Team>(teamsInput);
             Schedule maxSchedule = new Schedule(); //max schedule that had highest number of games
 
             // Define the days for scheduling
-            DateTime[] scheduleDays = { 
+            DateTime[] scheduleDays = {
                 new DateTime(2024, 1, 2),
                 new DateTime(2024, 1, 3),
                 new DateTime(2024, 1, 4),
@@ -45,7 +49,7 @@ namespace WinFormsApp1
                 new DateTime(2024, 1, 8),
                 new DateTime(2024, 1, 9),
                 new DateTime(2024, 1, 10),
-                new DateTime(2024, 1, 11) 
+                new DateTime(2024, 1, 11)
             }; // Example: Tuesday and Wednesday
             Schedule schedule = new Schedule();
 
@@ -155,53 +159,160 @@ namespace WinFormsApp1
                 amtOfPermutations = amtOfPermutations * i;
             }
 
+            //code that works through test appp
+            //static void Main()
+            //{
+            //    char[] teams = { 'A', 'B', 'C', 'D', 'E', 'F' };
+            //    int days = 5;
+            //    int gamesPerDay = 3;
 
+            //    GenerateSchedule(teams, days, gamesPerDay);
+            //}
+
+            //static void GenerateSchedule(char[] teams, int days, int gamesPerDay)
+            //{
+            //    int totalTeams = teams.Length;
+
+            //    for (int day = 1; day <= days; day++)
+            //    {
+            //        Console.WriteLine($"Day {day}:");
+
+            //        for (int game = 1; game <= gamesPerDay; game++)
+            //        {
+            //            char teamA = teams[(day - 1 + game - 1) % totalTeams];
+            //            char teamB = teams[(day - 1 + totalTeams / 2 + game - 1) % totalTeams];
+
+            //            Console.WriteLine($"- Game {((day - 1) * gamesPerDay) + game}: {teamA} vs {teamB}");
+            //        }
+
+            //        Console.WriteLine();
+            //    }
+            //}
             //list of lists of teams
-            GeneratePermutations(teamsInput, 0);
+            GenerateTeamPermutations(teamsInput, 0);
 
             //if no conflicts:
-            //returns every possible game that can be paired up
-            for (int i = 0; i < teamsInput.Count - 1; i++)
+            if (isConflict == false)
             {
-                for (int j = i + 1; j < teamsInput.Count; j++)
-                {    
-                    schedule.AddGame(new Game(remainingTeams[i], remainingTeams[j], DateTime.MaxValue));
-                }
-            }
+                //for (int day = 1; day <= scheduleDays.Length; day++)
+                //{
+                //    for (int game = 1; game <= teamsCount/2; game++)
+                //    {
+                //        Team teamA = teamsInput[(day - 1 + game - 1) % teamsCount];
+                //        Team teamB = teamsInput[(day - 1 + teamsCount / 2 + game - 1) % teamsCount];
+                //        schedule.AddGame(new Game(teamA, teamB, scheduleDays[day - 1]));
+                //    }
 
-
-            for (int i = 0; i < scheduleDays.Length; i++)
-            {
-                int count = schedule.AmountOfGamesOnADay(scheduleDays[i]);
-
-                foreach (Game game in schedule.Games)
+                //}
+                //returns every possible game that can be paired up
+                for (int i = 0; i < teamsInput.Count - 1; i++)
                 {
-                    if (count < 3)
+                    for (int j = i + 1; j < teamsInput.Count; j++)
                     {
-                        if (game.ScheduledTime == DateTime.MaxValue)
+                        //make this just into a list of games, and add to schedule later?
+                        //schedule.AddGame(new Game(remainingTeams[i], remainingTeams[j], DateTime.MaxValue));
+                        validGames.Add(new Game(remainingTeams[i], remainingTeams[j], DateTime.MaxValue));
+                    }
+                }
+                GenerateGamePermutations(validGames, 0);
+                int gameDays = 5;
+                int gamesPerDay = 3;
+                int countDays = 0;
+                int countGames = 0;
+                bool isOptimal = false;
+                for (int i = 0; i < validGameLists.Count; i++)
+                {
+                    currentGameList = validGameLists[i];
+                    for (int j = 0; j < gameDays; j++)
+                    {
+                        countGames = 0;
+                        foreach (Game game in currentGameList)
                         {
-                            if (!TeamsPlayMoreThanOncePerDay(game.HomeTeam, scheduleDays[i], schedule) &&
-                                !TeamsPlayMoreThanOncePerDay(game.AwayTeam, scheduleDays[i], schedule))
+                            if (!TeamsAlreadyPlayed(game.HomeTeam, game.AwayTeam, schedule, scheduleDays[j]))
                             {
-                                game.ScheduledTime = scheduleDays[i];
-                                count += 1;
+                                schedule.AddGame(new Game(game.HomeTeam, game.AwayTeam, scheduleDays[j]));
+                                countGames += 1;
                             }
-                            //if (!TeamsAlreadyPlayed(game.HomeTeam, game.AwayTeam, schedule, scheduleDays[i]))
-                            //{
-                            //    game.ScheduledTime = scheduleDays[i];
-                            //    // Schedule the game
-                            //    //game.ScheduledTime = scheduleDays[i];
-                            //    //maxSchedule.AddGame(new Game(game.HomeTeam, game.AwayTeam, scheduleDays[i]));
-                            //    //schedule.Games.Remove(game);
-                            //    count += 1;
-                            //}
+                            if (countGames == 2)
+                            {
+                                isOptimal = true;
+                                break;
+                            }
+                        }
+                        if (countGames <= 1)
+                        {
+                            isOptimal = false;
+                            break;
                         }
                     }
 
+                    if (isOptimal == true)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        schedule.Games.Clear();
+                    }
                 }
+
+                return schedule;
+               
+
+                while (countDays < gameDays)
+                {
+                    if (schedule.AmountOfGamesOnADay(scheduleDays[countDays]) < gamesPerDay)
+                    {
+                        if (TeamsAlreadyPlayed(schedule.Games[countGames].HomeTeam, schedule.Games[countGames].AwayTeam, schedule, schedule.Games[countGames].ScheduledTime))
+                        {
+
+                        }
+                    } 
+                }
+           
+
+
+
+                //TODO 1/9
+                //filter games into buckets for each possible slot evvery day?
+                //if odd number of teams - add "bye" team?
+                //determine valid bucket ahead of time, then assign the games
+                //
+                //try to organize the games into a schedule
+                //for (int i = 0; i < scheduleDays.Length; i++)
+                //{
+                //    int count = schedule.AmountOfGamesOnADay(scheduleDays[i]);
+
+                //    foreach (Game game in schedule.Games)
+                //    {
+                //        if (count < 3)
+                //        {
+                //            if (game.ScheduledTime == DateTime.MaxValue)
+                //            {
+                //                if (!TeamsPlayMoreThanOncePerDay(game.HomeTeam, scheduleDays[i], schedule) &&
+                //                    !TeamsPlayMoreThanOncePerDay(game.AwayTeam, scheduleDays[i], schedule))
+                //                {
+                //                    game.ScheduledTime = scheduleDays[i];
+                //                    count += 1;
+                //                }
+                //                //if (!TeamsAlreadyPlayed(game.HomeTeam, game.AwayTeam, schedule, scheduleDays[i]))
+                //                //{
+                //                //    game.ScheduledTime = scheduleDays[i];
+                //                //    // Schedule the game
+                //                //    //game.ScheduledTime = scheduleDays[i];
+                //                //    //maxSchedule.AddGame(new Game(game.HomeTeam, game.AwayTeam, scheduleDays[i]));
+                //                //    //schedule.Games.Remove(game);
+                //                //    count += 1;
+                //                //}
+                //            }
+                //        }
+
+                //    }
+                //}
+
+                return schedule;
             }
 
-            return schedule;
 
             //foreach (DateTime day in scheduleDays)
             //{
@@ -340,6 +451,8 @@ namespace WinFormsApp1
         }
         private void btnRandomize_Click(object sender, EventArgs e)
         {
+            dgvSched.Rows.Clear();
+            
             //generate schedule based on teams/times/leagues entered
             Schedule schedule = GenerateSchedule(teams);
 
@@ -366,17 +479,19 @@ namespace WinFormsApp1
             //string teamPlayer4 = txtPlayer4.Text;
 
             ////for dev testing
-            teams.Add(new Team("Team A", "ABC", new List<string> { "Player1", "Player2", "Player11", "Player12" })); //shares Player1 with C
-            teams.Add(new Team("Team B", "ABC", new List<string> { "Player3", "Player4","Player15", "Player23" }));
-            teams.Add(new Team("Team C", "ABC", new List<string> { "Player19", "Player5", "Player16", "Player25" })); //shares Player1 with A
-            teams.Add(new Team("Team D", "ABC", new List<string> { "Player31", "Player32", "Player311", "Player312" }));
-            teams.Add(new Team("Team E", "ABC", new List<string> { "Player43", "Player44", "Player415", "Player423" }));
-            teams.Add(new Team("Team F", "ABC", new List<string> { "Player51", "Player55", "Player516", "Player525" }));
+            List<Team> tempTeams = new List<Team>();
+            tempTeams.Add(new Team("Team A", "ABC", new List<string> { "Player11", "Player12", "Player13", "Player14" })); //shares Player1 with C
+            tempTeams.Add(new Team("Team B", "ABC", new List<string> { "Player21", "Player22", "Player23", "Player24" }));
+            tempTeams.Add(new Team("Team C", "ABC", new List<string> { "Player31", "Player32", "Player33", "Player34" })); //shares Player1 with A
+            tempTeams.Add(new Team("Team D", "ABC", new List<string> { "Player41", "Player42", "Player43", "Player44" }));
+            tempTeams.Add(new Team("Team E", "ABC", new List<string> { "Player51", "Player52", "Player53", "Player54" }));
+            tempTeams.Add(new Team("Team F", "ABC", new List<string> { "Player61", "Player62", "Player63", "Player64" }));
             //teams.Add(new Team("Team G", "ABC", new List<string> { "Player991", "Player955", "Player916", "Player925" }));
             ////
             //display added teams in DGV
-            foreach (Team team in teams)
+            foreach (Team team in tempTeams)
             {
+                teams.Add(team);
                 string[] players = team.Players.ToArray();
                 dgvTeams.Rows.Add(team.name, team.league, players[0], players[1], players[2], players[3]);
             }
@@ -394,7 +509,7 @@ namespace WinFormsApp1
         }
 
         //used for generating every permutation
-        static void GeneratePermutations(List<Team> list, int currentIndex)
+        static void GenerateTeamPermutations(List<Team> list, int currentIndex)
         {
             if (currentIndex == list.Count - 1)
             {
@@ -406,10 +521,32 @@ namespace WinFormsApp1
             for (int i = currentIndex; i < list.Count; i++)
             {
                 Swap(list, currentIndex, i);
-                GeneratePermutations(list, currentIndex + 1);
+                GenerateTeamPermutations(list, currentIndex + 1);
                 Swap(list, currentIndex, i);
             }
         }
+        static void GenerateGamePermutations(List<Game> list, int currentIndex)
+        {
+            if (currentIndex == list.Count - 1)
+            {
+                List<Game> newList = list;
+                validGameLists.Add(newList);
+                return;
+            }
+
+            for (int i = currentIndex; i < list.Count; i++)
+            {
+                if (validGameLists.Count > 10000)
+                {
+                    return;
+                }
+                SwapGame(list, currentIndex, i);
+                GenerateGamePermutations(list, currentIndex + 1);
+                SwapGame(list, currentIndex, i);
+            }
+
+        }
+
         //used for generatic every permutation
         static void Swap(List<Team> list, int index1, int index2)
         {
@@ -418,5 +555,43 @@ namespace WinFormsApp1
             list[index2] = temp;
         }
 
+        static void SwapGame(List<Game> list, int index1, int index2)
+        {
+            Game temp = list[index1];
+            list[index1] = list[index2];
+            list[index2] = temp;
+        }
+
+        private void chkIsConflict_CheckedChanged(object sender, EventArgs e)
+        {
+            isConflict = !isConflict;
+        }
+
+        private void btnAddTeam2_Click(object sender, EventArgs e)
+        {
+            ////for dev testing
+            List<Team> tempTeams = new List<Team>();
+            tempTeams.Add(new Team("Test1", "Devs", new List<string> { "Dev11", "Dev12", "Dev13", "Dev14" })); //shares Player1 with C
+            tempTeams.Add(new Team("Test2", "Devs", new List<string> { "Dev21", "Dev22", "Dev23", "Dev24" }));
+            tempTeams.Add(new Team("Test3", "Devs", new List<string> { "Dev31", "Dev32", "Dev33", "Dev34" })); //shares Player1 with A
+            tempTeams.Add(new Team("Test4", "Devs", new List<string> { "Dev41", "Dev42", "Dev43", "Dev44" }));
+            tempTeams.Add(new Team("Test5", "Devs", new List<string> { "SameDev", "Dev52", "Dev53", "Dev54" }));
+            tempTeams.Add(new Team("Test6", "Devs", new List<string> { "SameDev", "Dev62", "Dev63", "Dev64" }));
+            //teams.Add(new Team("Team G", "ABC", new List<string> { "Player991", "Player955", "Player916", "Player925" }));
+            ////
+            //display added teams in DGV
+            foreach (Team team in tempTeams)
+            {
+                teams.Add(team);
+                string[] players = team.Players.ToArray();
+                dgvTeams.Rows.Add(team.name, team.league, players[0], players[1], players[2], players[3]);
+            }
+        }
+
+        private void btnClearTeams_Click(object sender, EventArgs e)
+        {
+            teams.Clear();
+            dgvTeams.Rows.Clear();
+        }
     }
 }
