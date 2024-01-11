@@ -17,6 +17,7 @@ namespace WinFormsApp1
         static List<Game> currentGameList = new List<Game>();
         static List<List<Team>> teamPermutations = new List<List<Team>>();
         static bool isConflict = false;
+        private static Random rng = new Random();
         public Form1()
         {
             InitializeComponent();
@@ -220,39 +221,65 @@ namespace WinFormsApp1
                 int countDays = 0;
                 int countGames = 0;
                 bool isOptimal = false;
+                int optimalDays = 0;
+                List<Game> tempList = new List<Game>();
+                Schedule tempSchedule = new Schedule();
+                //cycle through every game variation
                 for (int i = 0; i < validGameLists.Count; i++)
                 {
                     currentGameList = validGameLists[i];
+                    //List<Game> tentativeList = new List<Game>();
+                    tempList.Clear();
+                    
                     for (int j = 0; j < gameDays; j++)
                     {
+                        tempList.Clear();
+                        tempSchedule.Games.Clear();
+                        foreach (Game game in schedule.Games)
+                        {
+                            tempSchedule.AddGame(new Game(game.HomeTeam, game.AwayTeam, game.ScheduledTime));
+                        }
+
+                        isOptimal = false;
                         countGames = 0;
                         foreach (Game game in currentGameList)
                         {
-                            if (!TeamsAlreadyPlayed(game.HomeTeam, game.AwayTeam, schedule, scheduleDays[j]))
+                            if (!TeamsAlreadyPlayed(game.HomeTeam, game.AwayTeam, tempSchedule, scheduleDays[j]))
                             {
-                                schedule.AddGame(new Game(game.HomeTeam, game.AwayTeam, scheduleDays[j]));
+                                tempSchedule.AddGame(new Game(game.HomeTeam, game.AwayTeam, scheduleDays[j]));
+                                tempList.Add(game);
                                 countGames += 1;
                             }
-                            if (countGames == 2)
+                            if (countGames == 3)
                             {
                                 isOptimal = true;
+                                optimalDays += 1;
                                 break;
                             }
                         }
-                        if (countGames <= 1)
+                        if (countGames <= 2)
                         {
                             isOptimal = false;
                             break;
                         }
+                        if (isOptimal == true)
+                        {
+                            foreach (Game game in tempList)
+                            {
+                                schedule.AddGame(new Game(game.HomeTeam, game.AwayTeam, scheduleDays[j]));
+                            }
+                        }
                     }
-
+                    if ((i > validGameLists.Count - 3) && (isOptimal == false))
+                    {
+                        validGameLists.Clear();
+                        GenerateGamePermutations(validGames, 0);
+                        schedule.Games.Clear();
+                        optimalDays = 0;
+                    }
                     if (isOptimal == true)
                     {
                         break;
-                    }
-                    else
-                    {
-                        schedule.Games.Clear();
                     }
                 }
 
@@ -497,6 +524,20 @@ namespace WinFormsApp1
             }
         }
 
+        static List<Game> RandomGames(List<Game> games)
+        {
+            int n = games.Count;
+            while (n > 1)
+            {
+                n--;
+                int k = rng.Next(n + 1);
+                Game value = games[k];
+                games[k] = games[n];
+                games[n] = value;
+            }
+
+            return games;
+        }
         private void btnAddTime_Click(object sender, EventArgs e)
         {
             DateTime date = dtpDate.Value.Date;
@@ -533,10 +574,20 @@ namespace WinFormsApp1
                 validGameLists.Add(newList);
                 return;
             }
+            int n = list.Count;
+            while (n > 1)
+            {
+                n--;
+                int k = rng.Next(n + 1);
+                Game value = list[k];
+                list[k] = list[n];
+                list[n] = value;
+            }
+
 
             for (int i = currentIndex; i < list.Count; i++)
             {
-                if (validGameLists.Count > 10000)
+                if (validGameLists.Count > 1000000)
                 {
                     return;
                 }
@@ -546,6 +597,7 @@ namespace WinFormsApp1
             }
 
         }
+
 
         //used for generatic every permutation
         static void Swap(List<Team> list, int index1, int index2)
