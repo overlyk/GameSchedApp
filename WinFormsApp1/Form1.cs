@@ -18,6 +18,7 @@ namespace WinFormsApp1
         static List<List<Team>> teamPermutations = new List<List<Team>>();
         static bool isConflict = false;
         private static Random rng = new Random();
+        static bool addBye = false;
 
         public Form1()
         {
@@ -25,6 +26,7 @@ namespace WinFormsApp1
         }
         static Schedule GenerateSchedule(List<Team> teamsInput)
         {
+            validGames.Clear();
             List<Team> remainingTeams = new List<Team>(teamsInput);
             Schedule maxSchedule = new Schedule(); //max schedule that had highest number of games
             DateTime[] scheduleDays = {
@@ -37,7 +39,17 @@ namespace WinFormsApp1
                 new DateTime(2024, 1, 8),
                 new DateTime(2024, 1, 9),
                 new DateTime(2024, 1, 10),
-                new DateTime(2024, 1, 11)
+                new DateTime(2024, 1, 11),
+                new DateTime(2024, 1, 12),
+                new DateTime(2024, 1, 13),
+                new DateTime(2024, 1, 14),
+                new DateTime(2024, 1, 15),
+                new DateTime(2024, 1, 16),
+                new DateTime(2024, 1, 17),
+                new DateTime(2024, 1, 18),
+                new DateTime(2024, 1, 19),
+                new DateTime(2024, 1, 20),
+                new DateTime(2024, 1, 21)
             }; // Example: Tuesday and Wednesday
             Schedule schedule = new Schedule();
 
@@ -46,31 +58,42 @@ namespace WinFormsApp1
             //add if conflicts allowed check
             if (isConflict == false)
             {
-                //returns every possible game that can be paired up
-                for (int i = 0; i < teamsInput.Count - 1; i++)
+                int gamesPerDay = 0;
+                int gameDays = 0;
+                //optimal amount of gamesPerDay
+                if (teamsInput.Count % 2 == 0)
                 {
-                    for (int j = i + 1; j < teamsInput.Count; j++)
+                    gamesPerDay = teamsInput.Count / 2;
+                    gameDays = teamsInput.Count - 1;
+                }
+                if (teamsInput.Count % 2 != 0 && addBye)
+                {
+                    gamesPerDay = (teamsInput.Count / 2) + 1;
+                    gameDays = (teamsInput.Count + 1) - 1;
+                    remainingTeams.Add(new Team("BYE", "BYE", new List<string> { "BYE", "BYE", "BYE", "BYE" }));
+                }
+
+                //returns every possible game that can be paired up
+                for (int i = 0; i < gameDays; i++)
+                {
+                    for (int j = i + 1; j < gameDays + 1; j++)
                     {
                         validGames.Add(new Game(remainingTeams[i], remainingTeams[j], DateTime.MaxValue));
                     }
                 }
-                //TODO
-                //make these variables automatic based on teams/schedule
-                int gameDays = 5;
-                int gamesPerDay = 3;
+
                 int countGames = 0; //used to track how many games are counted each day when optimizing schedule
                 bool isOptimal = false;
                 int optimalDays = 0; //amount of optimal days collected so far until we hit our goal number
                 List<Game> tempList = new List<Game>();
                 Schedule tempSchedule = new Schedule();
                 bool validSchedule = false;
-              
+
                 //cycle through every game variation that we collected above
                 while (validSchedule == false)
                 {
                     validGameLists.Clear();
-                    GenerateGamePermutations(validGames, 0);
-                    currentGameList = validGameLists[0];
+                    currentGameList = validGames;
                     currentGameList = RandomGames(currentGameList);
                     optimalDays = 0;
                     schedule.Games.Clear();
@@ -509,6 +532,25 @@ namespace WinFormsApp1
         {
             teams.Clear();
             dgvTeams.Rows.Clear();
+        }
+
+        private void btnAddNewTeam_Click(object sender, EventArgs e)
+        {
+            string teamName = txtTeamName.Text;
+            string teamLeague = cmbTeamLeague.Text;
+            string teamPlayer1 = txtPlayer1.Text;
+            string teamPlayer2 = txtPlayer2.Text;
+            string teamPlayer3 = txtPlayer3.Text;
+            string teamPlayer4 = txtPlayer4.Text;
+
+
+            teams.Add(new Team(teamName, teamLeague, new List<string> { teamPlayer1, teamPlayer2, teamPlayer3, teamPlayer4 }));
+            dgvTeams.Rows.Add(teamName, teamLeague, teamPlayer1, teamPlayer2, teamPlayer3, teamPlayer4);
+        }
+
+        private void btnAddBye_CheckedChanged(object sender, EventArgs e)
+        {
+            addBye = !addBye;
         }
     }
 }

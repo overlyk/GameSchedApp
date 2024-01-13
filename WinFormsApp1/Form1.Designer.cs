@@ -77,6 +77,7 @@
             chkIsConflict = new CheckBox();
             btnClearTeams = new Button();
             btnAddNewTeam = new Button();
+            btnAddBye = new CheckBox();
             ((System.ComponentModel.ISupportInitialize)dgvTeams).BeginInit();
             ((System.ComponentModel.ISupportInitialize)dgvTime).BeginInit();
             ((System.ComponentModel.ISupportInitialize)dgvSched).BeginInit();
@@ -84,11 +85,13 @@
             // 
             // dgvTeams
             // 
+            dgvTeams.AllowUserToAddRows = false;
             dgvTeams.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             dgvTeams.Columns.AddRange(new DataGridViewColumn[] { TeamName, TeamLeague, TeamPlayer1, TeamPlayer2, TeamPlayer3, TeamPlayer4 });
             dgvTeams.Location = new Point(908, 211);
             dgvTeams.Margin = new Padding(6);
             dgvTeams.Name = "dgvTeams";
+            dgvTeams.ReadOnly = true;
             dgvTeams.RowHeadersWidth = 82;
             dgvTeams.Size = new Size(1231, 887);
             dgvTeams.TabIndex = 0;
@@ -98,6 +101,7 @@
             TeamName.HeaderText = "TeamName";
             TeamName.MinimumWidth = 10;
             TeamName.Name = "TeamName";
+            TeamName.ReadOnly = true;
             TeamName.Width = 200;
             // 
             // TeamLeague
@@ -105,6 +109,7 @@
             TeamLeague.HeaderText = "TeamLeague";
             TeamLeague.MinimumWidth = 10;
             TeamLeague.Name = "TeamLeague";
+            TeamLeague.ReadOnly = true;
             TeamLeague.Width = 200;
             // 
             // TeamPlayer1
@@ -112,6 +117,7 @@
             TeamPlayer1.HeaderText = "Player1";
             TeamPlayer1.MinimumWidth = 10;
             TeamPlayer1.Name = "TeamPlayer1";
+            TeamPlayer1.ReadOnly = true;
             TeamPlayer1.Width = 200;
             // 
             // TeamPlayer2
@@ -119,6 +125,7 @@
             TeamPlayer2.HeaderText = "Player2";
             TeamPlayer2.MinimumWidth = 10;
             TeamPlayer2.Name = "TeamPlayer2";
+            TeamPlayer2.ReadOnly = true;
             TeamPlayer2.Width = 200;
             // 
             // TeamPlayer3
@@ -126,6 +133,7 @@
             TeamPlayer3.HeaderText = "Player3";
             TeamPlayer3.MinimumWidth = 10;
             TeamPlayer3.Name = "TeamPlayer3";
+            TeamPlayer3.ReadOnly = true;
             TeamPlayer3.Width = 200;
             // 
             // TeamPlayer4
@@ -133,10 +141,13 @@
             TeamPlayer4.HeaderText = "Player4";
             TeamPlayer4.MinimumWidth = 10;
             TeamPlayer4.Name = "TeamPlayer4";
+            TeamPlayer4.ReadOnly = true;
             TeamPlayer4.Width = 200;
             // 
             // dtpDate
             // 
+            dtpDate.CustomFormat = "dd";
+            dtpDate.Format = DateTimePickerFormat.Custom;
             dtpDate.Location = new Point(71, 307);
             dtpDate.Margin = new Padding(6);
             dtpDate.Name = "dtpDate";
@@ -489,11 +500,11 @@
             // chkIsConflict
             // 
             chkIsConflict.AutoSize = true;
-            chkIsConflict.Location = new Point(1424, 163);
+            chkIsConflict.Location = new Point(1343, 163);
             chkIsConflict.Name = "chkIsConflict";
-            chkIsConflict.Size = new Size(151, 36);
+            chkIsConflict.Size = new Size(269, 36);
             chkIsConflict.TabIndex = 34;
-            chkIsConflict.Text = "is Conflict";
+            chkIsConflict.Text = "Don't Allow Conflicts";
             chkIsConflict.UseVisualStyleBackColor = true;
             chkIsConflict.CheckedChanged += chkIsConflict_CheckedChanged;
             // 
@@ -517,12 +528,25 @@
             btnAddNewTeam.TabIndex = 36;
             btnAddNewTeam.Text = "Add Team";
             btnAddNewTeam.UseVisualStyleBackColor = true;
+            btnAddNewTeam.Click += btnAddNewTeam_Click;
+            // 
+            // btnAddBye
+            // 
+            btnAddBye.AutoSize = true;
+            btnAddBye.Location = new Point(908, 161);
+            btnAddBye.Name = "btnAddBye";
+            btnAddBye.Size = new Size(372, 36);
+            btnAddBye.TabIndex = 37;
+            btnAddBye.Text = "Add BYE Game If Odd # Teams";
+            btnAddBye.UseVisualStyleBackColor = true;
+            btnAddBye.CheckedChanged += btnAddBye_CheckedChanged;
             // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(13F, 32F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(2162, 1879);
+            Controls.Add(btnAddBye);
             Controls.Add(btnAddNewTeam);
             Controls.Add(btnClearTeams);
             Controls.Add(chkIsConflict);
@@ -617,5 +641,6 @@
         private CheckBox chkIsConflict;
         private Button btnClearTeams;
         private Button btnAddNewTeam;
+        private CheckBox btnAddBye;
     }
 }
