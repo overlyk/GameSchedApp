@@ -506,7 +506,6 @@
             chkIsConflict.TabIndex = 34;
             chkIsConflict.Text = "Don't Allow Conflicts";
             chkIsConflict.UseVisualStyleBackColor = true;
-            chkIsConflict.CheckedChanged += chkIsConflict_CheckedChanged;
             // 
             // btnClearTeams
             // 
@@ -539,7 +538,6 @@
             btnAddBye.TabIndex = 37;
             btnAddBye.Text = "Add BYE Game If Odd # Teams";
             btnAddBye.UseVisualStyleBackColor = true;
-            btnAddBye.CheckedChanged += btnAddBye_CheckedChanged;
             // 
             // Form1
             // 
