@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Diagnostics.Metrics;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
@@ -10,25 +12,19 @@ namespace WinFormsApp1
 {
     public partial class Form1 : Form
     {
-        List<ScheduledTime> scheduledTimes = new List<ScheduledTime>();
-        List<Team> teams = new List<Team>();
-        static List<List<Game>> validGameLists = new List<List<Game>>();
-        static List<Game> validGames = new List<Game>();
-        static List<Game> currentGameList = new List<Game>();
-        static List<List<Team>> teamPermutations = new List<List<Team>>();
-        static bool isConflict = false;
+        List<Team> teams = new List<Team>(); //currently loaded teams in the gridview
+        static List<List<Game>> validGameLists = new List<List<Game>>(); //probably deprecated but might use this functionality later
+        static List<List<Team>> teamPermutations = new List<List<Team>>(); //probably deprecated but might use this functionality later
         private static Random rng = new Random();
-        static bool addBye = false;
-
         public Form1()
         {
             InitializeComponent();
         }
-        static Schedule GenerateSchedule(List<Team> teamsInput)
+        Schedule GenerateSchedule(List<Team> teamsInput)
         {
-            validGames.Clear();
-            List<Team> remainingTeams = new List<Team>(teamsInput);
-            Schedule maxSchedule = new Schedule(); //max schedule that had highest number of games
+            List<Game> validGames = new List<Game>();
+            List<Game> tempListOfValidGamesFound = new List<Game>();
+            List<Team> teamsToSchedule = new List<Team>(teamsInput);
             DateTime[] scheduleDays = {
                 new DateTime(2024, 1, 2),
                 new DateTime(2024, 1, 3),
@@ -51,269 +47,161 @@ namespace WinFormsApp1
                 new DateTime(2024, 1, 20),
                 new DateTime(2024, 1, 21)
             }; // Example: Tuesday and Wednesday
-            Schedule schedule = new Schedule();
-
-            //if no conflicts:
-            //todo 1/11
-            //add if conflicts allowed check
-            if (isConflict == false)
+            Schedule validFinalSchedule = new Schedule();
+            Schedule tempFinalSchedule = new Schedule();
+            bool isOptimalScheduleFound = false;
+            int minDaysNeeded = 0;
+            int amountOfConflicts = 0;
+            int optimalMaxGamesPerDay = 0;
+            int validGamesFoundPerDay = 0; //used to track how many games are counted each day when optimizing schedule
+            int optimalDaysFound = 0; //amount of optimal days collected so far until we hit our goal number
+            
+            if (!chkIsConflict.Checked) //IF THERE IS NO CONFLICT IN THE GAMES
             {
-                int gamesPerDay = 0;
-                int gameDays = 0;
-                //optimal amount of gamesPerDay
-                if (teamsInput.Count % 2 == 0)
+                //finds optimal amount of GamesPerDay
+                if (teamsToSchedule.Count % 2 == 0)
                 {
-                    gamesPerDay = teamsInput.Count / 2;
-                    gameDays = teamsInput.Count - 1;
+                    optimalMaxGamesPerDay = teamsToSchedule.Count / 2;
+                    minDaysNeeded = teamsToSchedule.Count - 1;
                 }
-                if (teamsInput.Count % 2 != 0 && addBye)
+                if (teamsToSchedule.Count % 2 != 0 && btnAddBye.Checked)
                 {
-                    gamesPerDay = (teamsInput.Count / 2) + 1;
-                    gameDays = (teamsInput.Count + 1) - 1;
-                    remainingTeams.Add(new Team("BYE", "BYE", new List<string> { "BYE", "BYE", "BYE", "BYE" }));
+                    optimalMaxGamesPerDay = (teamsToSchedule.Count / 2) + 1;
+                    minDaysNeeded = (teamsToSchedule.Count + 1) - 1;
+                    teamsToSchedule.Add(new Team("BYE", "BYE", new List<string> { "BYE", "BYE", "BYE", "BYE" }));
                 }
-
                 //returns every possible game that can be paired up
-                for (int i = 0; i < gameDays; i++)
+                for (int i = 0; i < minDaysNeeded; i++)
                 {
-                    for (int j = i + 1; j < gameDays + 1; j++)
+                    for (int j = i + 1; j < minDaysNeeded + 1; j++)
                     {
-                        validGames.Add(new Game(remainingTeams[i], remainingTeams[j], DateTime.MaxValue));
+                        validGames.Add(new Game(teamsToSchedule[i], teamsToSchedule[j], DateTime.MaxValue));
                     }
                 }
-
-                int countGames = 0; //used to track how many games are counted each day when optimizing schedule
-                bool isOptimal = false;
-                int optimalDays = 0; //amount of optimal days collected so far until we hit our goal number
-                List<Game> tempList = new List<Game>();
-                Schedule tempSchedule = new Schedule();
-                bool validSchedule = false;
-
                 //cycle through every game variation that we collected above
-                while (validSchedule == false)
+                while (isOptimalScheduleFound == false)
                 {
-                    validGameLists.Clear();
-                    currentGameList = validGames;
-                    currentGameList = RandomGames(currentGameList);
-                    optimalDays = 0;
-                    schedule.Games.Clear();
-                    tempList.Clear();
-
-                    //cycling through every day
-                    //track if day is optimal or not
-                    for (int j = 0; j < gameDays; j++)
+                    validGames = RandomizeGames(validGames);
+                    validFinalSchedule.Games.Clear();
+                    optimalDaysFound = 0;
+                    //cycling through every day, track if optimal day found
+                    for (int j = 0; j < minDaysNeeded; j++)
                     {
-                        tempList.Clear();
-                        tempSchedule.Games.Clear();
-
-                        foreach (Game game in schedule.Games)
+                        bool optimalDayScheduleFound = false;
+                        validGamesFoundPerDay = 0;
+                        tempListOfValidGamesFound.Clear();
+                        tempFinalSchedule.Games.Clear();
+                        foreach (Game game in validFinalSchedule.Games)
                         {
-                            tempSchedule.AddGame(new Game(game.HomeTeam, game.AwayTeam, game.ScheduledTime));
-                        }
-                        isOptimal = false;
-                        countGames = 0;
-                        foreach (Game game in currentGameList)
+                            tempFinalSchedule.AddGame(new Game(game.HomeTeam, game.AwayTeam, game.ScheduledTime));
+                        }                     
+                        foreach (Game game in validGames)
                         {
-                            if (!TeamsAlreadyPlayed(game.HomeTeam, game.AwayTeam, tempSchedule, scheduleDays[j]))
+                            if (!TeamsAlreadyPlayed(game.HomeTeam, game.AwayTeam, tempFinalSchedule, scheduleDays[j]))
                             {
-                                tempSchedule.AddGame(new Game(game.HomeTeam, game.AwayTeam, scheduleDays[j]));
-                                tempList.Add(game);
-                                countGames += 1;
+                                tempFinalSchedule.AddGame(new Game(game.HomeTeam, game.AwayTeam, scheduleDays[j]));
+                                tempListOfValidGamesFound.Add(game);
+                                validGamesFoundPerDay += 1;
                             }
-                            if (countGames == gamesPerDay)
+                            if (validGamesFoundPerDay == optimalMaxGamesPerDay)
                             {
-                                isOptimal = true;
-                                optimalDays += 1;
+                                optimalDayScheduleFound = true;
+                                optimalDaysFound += 1;
+
+                                foreach (Game tempGame in tempListOfValidGamesFound)
+                                {
+                                    validFinalSchedule.AddGame(new Game(tempGame.HomeTeam, tempGame.AwayTeam, scheduleDays[j]));
+                                }
                                 break;
                             }
                         }
-                        if (countGames <= gamesPerDay - 1)
+                        if (optimalDayScheduleFound == false)
                         {
-                            isOptimal = false;
                             break;
                         }
-                        if (isOptimal == true)
-                        {
-                            foreach (Game game in tempList)
-                            {
-                                schedule.AddGame(new Game(game.HomeTeam, game.AwayTeam, scheduleDays[j]));
-                            }
-                        }
                     }
-
-                    //if the schedule is still optimal after all time slots filled
-                    if (isOptimal == true)
+                    if (validFinalSchedule.Games.Count == validGames.Count)
                     {
-                        validSchedule = true;
+                        isOptimalScheduleFound = true;
                     }
                 }
-                return schedule;
+                validGames.Clear();
+                return validFinalSchedule;
             }
-            else
-            {
-                ////is this needed anymore?? 1/11
-                ////GenerateTeamPermutations(teamsInput, 0);
-                ////starting team
-
-
-                ////todo 1/11
-                ///NOTE: this code is likely deprecated
-                ////finish this half of the implementation for basic conflict solutions
-                ////sort through every permutation
-                //bool validSchedule = false;
-                //while (validSchedule == false)
-                //{
-                //    schedule.Games.Clear();
-                //    remainingTeams = new List<Team>(teamPermutations[0]);
-
-                //    for (int i = teamsInput.Count - 1; i >= 0; i--)
-                //    {
-                //        Team currentTeam = remainingTeams[i];
-                //        remainingTeams.RemoveAt(i);
-                //        //check each day in the schedule
-                //        for (int j = 0; j < scheduleDays.Length; j++)
-                //        {
-                //            //cycle through each possible opponent for current team
-                //            //if valid opponent, add it to schedule
-                //            foreach (Team opponent in remainingTeams)
-                //            {
-                //                if (!HasPlayerConflicts(currentTeam, opponent, schedule, scheduleDays[j]) &&
-                //                    !TeamsPlayMoreThanOncePerDay(currentTeam, scheduleDays[j], schedule) &&
-                //                    !TeamsPlayMoreThanOncePerDay(opponent, scheduleDays[j], schedule) &&
-                //                    !TeamsAlreadyPlayed(currentTeam, opponent, schedule, scheduleDays[j]))
-                //                {
-                //                    // Schedule the game
-                //                    schedule.AddGame(new Game(currentTeam, opponent, scheduleDays[j]));
-                //                }
-                //            }
-                //        }
-                //    }
-
-                //    List<Game> validGames = new List<Game>();
-
-                //    foreach (Game game in schedule.Games)
-                //    {
-                //        validGames.Add(game);
-                //    }
-                //    int gameSlotsCount = 0; //count amount of slots that have a game scheduled and if amount of slots used was optimal
-                //    for (int i = 0; i < scheduleDays.Length; i++)
-                //    {
-                //        //if any game is in that time slot at all, increase slot count by 1 and go to next possible slot
-                //        foreach (Game game in schedule.Games)
-                //        {
-                //            if (game.ScheduledTime == scheduleDays[i])
-                //            {
-                //                gameSlotsCount += 1;
-                //                break;
-                //            }
-                //        }
-                //    }
-                //    //determine if the current schedule exists in a set of most optimal games
-                //    if ((schedule.Games.Count > maxSchedule.Games.Count) && (gameSlotsCount <= 9))
-                //    {
-                //        maxSchedule = schedule;
-                //        validSchedule = true;
-                //    }
-                //}
-                //return maxSchedule;
-
-                //begin here my experiment merigng the two
-                for (int i = 0; i < teamsInput.Count - 1; i++)
+            else //IF THERE IS A CONFLICT IN THE GAMES
+            {        
+                //find min days needed, optimmal games per day like above here
+                minDaysNeeded = 8;
+                optimalMaxGamesPerDay = 2;
+                //find all possible permutations while removing games that have player conflicts
+                for (int i = 0; i < teamsToSchedule.Count - 1; i++)
                 {
-                    for (int j = i + 1; j < teamsInput.Count; j++)
+                    for (int j = i + 1; j < teamsToSchedule.Count; j++)
                     {
-                        if (remainingTeams[i].name.Equals("Test5") || remainingTeams[i].name.Equals("Test6"))
+                        if (PlayerConflictBetweenTeams(teamsToSchedule[i], teamsToSchedule[j]))
                         {
-                            if (remainingTeams[j].name.Equals("Test5") || remainingTeams[j].name.Equals("Test6"))
-                            {
-                                break;
-                            }
-                        }
-                        validGames.Add(new Game(remainingTeams[i], remainingTeams[j], DateTime.MaxValue));
-                    }
-                }
-
-                int gameDays = 8;
-                int gamesPerDay = 2;
-                int countGames = 0; //used to track how many games are counted each day when optimizing schedule
-                bool isOptimal = false;
-                int optimalDays = 0; //amount of optimal days collected so far until we hit our goal number
-                List<Game> tempList = new List<Game>();
-                Schedule tempSchedule = new Schedule();
-                bool validSchedule = false;
-
-                while (validSchedule == false)
-                {
-                    validGameLists.Clear();
-                    GenerateGamePermutations(validGames, 0);
-                    currentGameList = validGameLists[0];
-                    currentGameList = RandomGames(currentGameList);
-                    optimalDays = 0;
-                    schedule.Games.Clear();
-                    tempList.Clear();
-
-                    //cycling through every day
-                    //track if day is optimal or not
-                    for (int j = 0; j < gameDays; j++)
-                    {
-                        tempList.Clear();
-                        tempSchedule.Games.Clear();
-
-                        foreach (Game game in schedule.Games)
-                        {
-                            tempSchedule.AddGame(new Game(game.HomeTeam, game.AwayTeam, game.ScheduledTime));
-                        }
-                        isOptimal = false;
-                        countGames = 0;
-                        foreach (Game game in currentGameList)
-                        {
-                            //(!HasPlayerConflicts(currentTeam, opponent, schedule, scheduleDays[j]) &&
-                            //!TeamsPlayMoreThanOncePerDay(currentTeam, scheduleDays[j], schedule) &&
-                            //!TeamsPlayMoreThanOncePerDay(opponent, scheduleDays[j], schedule) &&
-                            //!TeamsAlreadyPlayed(currentTeam, opponent, schedule, scheduleDays[j]))
-
-                            if (!TeamsAlreadyPlayed(game.HomeTeam, game.AwayTeam, tempSchedule, scheduleDays[j]) &&
-                                !TeamsPlayMoreThanOncePerDay(game.HomeTeam, scheduleDays[j], tempSchedule) &&
-                                !TeamsPlayMoreThanOncePerDay(game.AwayTeam, scheduleDays[j], tempSchedule) &&
-                                !HasPlayerConflicts(game.HomeTeam, game.AwayTeam, tempSchedule, scheduleDays[j]))
-                            {
-                                tempSchedule.AddGame(new Game(game.HomeTeam, game.AwayTeam, scheduleDays[j]));
-                                tempList.Add(game);
-                                countGames += 1;
-                            }
-                            if ((countGames == gamesPerDay) && j < 6)
-                            {
-                                isOptimal = true;
-                                optimalDays += 1;
-                                break;
-                            }
-                            else if ((countGames == gamesPerDay - 1) && j >= 6)
-                            {
-                                isOptimal = true;
-                                optimalDays += 1;
-                                break;
-                            }
-                        }
-                        if ((countGames <= gamesPerDay - 1) && j < 6)
-                        {
-                            isOptimal = false;
+                            amountOfConflicts += 1;
                             break;
                         }
-                        if (isOptimal == true)
-                        {
-                            foreach (Game game in tempList)
-                            {
-                                schedule.AddGame(new Game(game.HomeTeam, game.AwayTeam, scheduleDays[j]));
-                            }
-                        }
-                    }
-                    //if the schedule is still optimal after all time slots filled
-                    if (isOptimal == true)
-                    {
-                        validSchedule = true;
+                        validGames.Add(new Game(teamsToSchedule[i], teamsToSchedule[j], DateTime.MaxValue));
                     }
                 }
-                return schedule;
+                //algorithm to determine and then generate most optimal schedule
+                while (isOptimalScheduleFound == false)
+                {
+                    validGames = RandomizeGames(validGames);
+                    validFinalSchedule.Games.Clear();
+                    optimalDaysFound = 0;
+                    //cycling through every day track if optimal or not
+                    for (int j = 0; j < minDaysNeeded; j++)
+                    {
+                        bool optimalDayScheduleFound = false;
+                        validGamesFoundPerDay = 0;
+                        tempListOfValidGamesFound.Clear();
+                        tempFinalSchedule.Games.Clear();
+                        //add all the games assigned to the schedule so far into our temp schedule
+                        foreach (Game game in validFinalSchedule.Games)
+                        {
+                            tempFinalSchedule.AddGame(new Game(game.HomeTeam, game.AwayTeam, game.ScheduledTime));
+                        }
+                        //cycle through every game in our list of valid games generated above
+                        //check to make sure each game fits into the time slot properly on the schedule
+                        foreach (Game game in validGames)
+                        {
+                            if (!TeamsAlreadyPlayed(game.HomeTeam, game.AwayTeam, tempFinalSchedule, scheduleDays[j]) &&
+                                !TeamsPlayMoreThanOncePerDay(game.HomeTeam, scheduleDays[j], tempFinalSchedule) &&
+                                !TeamsPlayMoreThanOncePerDay(game.AwayTeam, scheduleDays[j], tempFinalSchedule) &&
+                                !HasPlayerConflicts(game.HomeTeam, game.AwayTeam, tempFinalSchedule, scheduleDays[j]))
+                            {
+                                tempFinalSchedule.AddGame(new Game(game.HomeTeam, game.AwayTeam, scheduleDays[j]));
+                                tempListOfValidGamesFound.Add(game);
+                                validGamesFoundPerDay += 1;
+                            }
+                            //check to make sure the day has an optimal count of games that are still possible
+                            if (((validGamesFoundPerDay == optimalMaxGamesPerDay) && j < 6 ) || ((validGamesFoundPerDay == optimalMaxGamesPerDay - 1) && j >= 6))
+                            {
+                                optimalDayScheduleFound = true;
+                                optimalDaysFound += 1;
+                                foreach (Game tempGame in tempListOfValidGamesFound)
+                                {
+                                    validFinalSchedule.AddGame(new Game(tempGame.HomeTeam, tempGame.AwayTeam, scheduleDays[j]));
+                                }
+                                break;
+                            }
+                        }
+                        //if sorting through the games per the day resulted in non-optimal day, start over with new permutation
+                        if (!optimalDayScheduleFound)
+                        {
+                            break;
+                        }
+                    }
+                    if (validFinalSchedule.Games.Count == validGames.Count)
+                    {
+                        isOptimalScheduleFound = true;
+                    }
+                }
+                validGames.Clear();
+                return validFinalSchedule;
             }
         }
 
@@ -339,6 +227,17 @@ namespace WinFormsApp1
             foreach (string player in team2.Players)
             {
                 if (team1.Players.Contains(player) || schedule.HasPlayerConflict(player, day))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        static bool PlayerConflictBetweenTeams(Team team1, Team team2)
+        {
+            foreach (string player in team1.Players)
+            {
+                if (team2.Players.Contains(player))
                 {
                     return true;
                 }
@@ -419,7 +318,7 @@ namespace WinFormsApp1
                 dgvTeams.Rows.Add(team.name, team.league, players[0], players[1], players[2], players[3]);
             }
         }
-        static List<Game> RandomGames(List<Game> games)
+        static List<Game> RandomizeGames(List<Game> games)
         {
             int n = games.Count;
             while (n > 1)
@@ -440,7 +339,7 @@ namespace WinFormsApp1
             DateTime endTime = dtpEndTime.Value.Date + dtpEndTime.Value.TimeOfDay;
             string league = cmbScheduleLeague.Text;
 
-            scheduledTimes.Add(new ScheduledTime(league, date, startTime, endTime));
+            //scheduledTimes.Add(new ScheduledTime(league, date, startTime, endTime)); deprecated, replace
             dgvTime.Rows.Add(league, date.ToString("dd-MM-yyyy"), startTime.ToString("hh:mm"), endTime.ToString("hh:mm"));
         }
         //used for generating every permutation
@@ -504,10 +403,6 @@ namespace WinFormsApp1
             list[index1] = list[index2];
             list[index2] = temp;
         }
-        private void chkIsConflict_CheckedChanged(object sender, EventArgs e)
-        {
-            isConflict = !isConflict;
-        }
         private void btnAddTeam2_Click(object sender, EventArgs e)
         {
             ////for dev testing
@@ -546,11 +441,6 @@ namespace WinFormsApp1
 
             teams.Add(new Team(teamName, teamLeague, new List<string> { teamPlayer1, teamPlayer2, teamPlayer3, teamPlayer4 }));
             dgvTeams.Rows.Add(teamName, teamLeague, teamPlayer1, teamPlayer2, teamPlayer3, teamPlayer4);
-        }
-
-        private void btnAddBye_CheckedChanged(object sender, EventArgs e)
-        {
-            addBye = !addBye;
         }
     }
 }
