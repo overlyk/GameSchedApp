@@ -21,19 +21,17 @@ namespace WinFormsApp1
         {
             Games.Add(game);
         }
-
         public bool HasPlayerConflict(string player, DateTime day)
         {
             foreach (Game game in Games)
             {
-                if ((game.HomeTeam.Players.Contains(player) || game.AwayTeam.Players.Contains(player)) && (game.ScheduledTime == day))
+                if ((game.HomeTeam.PlayerSet.Contains(player) || game.AwayTeam.PlayerSet.Contains(player)) && (game.ScheduledTime == day))
                 {
                     return true;
                 }
             }
             return false;
         }
-
         public int AmountOfGamesOnADay(DateTime day)
         {
             int count = 0;
@@ -45,6 +43,14 @@ namespace WinFormsApp1
                 }
             }
             return count;
+        }
+        // Method to remove the last game added to the schedule
+        public void RemoveLastGame()
+        {
+            if (Games.Count > 0)
+            {
+                Games.RemoveAt(Games.Count - 1);
+            }
         }
     }
 }

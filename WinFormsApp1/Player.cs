@@ -9,13 +9,9 @@ namespace WinFormsApp1
     internal class Player
     {
         string name;
-
         public Player(string playerName)
         {
             this.name = playerName;
         }
-
-
-
     }
 }
